@@ -1,3 +1,4 @@
+<?php
 session_start();
 if (!isset($_SESSION['user'])) header('Location: index.php');
 if ($_SESSION['user']['cedula'] !== 'admin') header('Location: dashboard_user.php');
