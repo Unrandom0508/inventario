@@ -1,29 +1,43 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_cedula'])) {
-    header("Location: login.php");
-    exit;
+require "db.php";
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $cedula = $_POST["cedula"];
+    $contrasena = $_POST["contrasena"];
+
+    $sql = "SELECT * FROM usuarios WHERE cedula='$cedula' AND contrasena='$contrasena'";
+    $resultado = $conexion->query($sql);
+
+    if ($resultado->num_rows > 0) {
+        $_SESSION["cedula"] = $cedula;
+        $_SESSION["contrasena"] = $contrasena;
+
+        if ($cedula == "1111" && $contrasena == "1234") {
+            header("Location: admin.php");
+        } else {
+            header("Location: articulos.php");
+        }
+        exit();
+    } else {
+        $error = "Credenciales incorrectas";
+    }
 }
-$nombre = htmlspecialchars($_SESSION['user_nombre']);
-$is_admin = $_SESSION['is_admin'];
 ?>
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
-<title>Inventario - Panel</title>
+    <title>Login Inventario</title>
 </head>
 <body>
-<h2>Bienvenido, <?= $nombre ?></h2>
-<?php if ($is_admin): ?>
-    <p>Eres admin — verás botones para Usuarios y Artículos.</p>
-    <button onclick="location.href='users.php'">Gestión de Usuarios</button>
-    <button onclick="location.href='articles.php'">Gestión de Artículos</button>
-<?php else: ?>
-    <p>Acceso limitado: solo gestión de artículos.</p>
-    <button onclick="location.href='articles.php'">Gestión de Artículos</button>
-<?php endif; ?>
-<br><br>
-<a href="logout.php">Cerrar sesión</a>
+    <h2>Ingreso al Sistema</h2>
+    <form method="POST">
+        <label>Cédula:</label><br>
+        <input type="text" name="cedula" required><br><br>
+        <label>Contraseña:</label><br>
+        <input type="password" name="contrasena" required><br><br>
+        <button type="submit">Ingresar</button>
+    </form>
+    <p style="color:red;"><?= isset($error) ? $error : "" ?></p>
 </body>
 </html>
