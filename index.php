@@ -1,42 +1,29 @@
 <?php
-// public/index.php
 session_start();
-if (isset($_SESSION['user'])) {
-// si es admin redirige al dashboard admin
-if ($_SESSION['user']['cedula'] === 'admin') header('Location: dashboard_admin.php');
-else header('Location: dashboard_user.php');
-exit;
+if (!isset($_SESSION['user_cedula'])) {
+    header("Location: login.php");
+    exit;
 }
+$nombre = htmlspecialchars($_SESSION['user_nombre']);
+$is_admin = $_SESSION['is_admin'];
 ?>
 <!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
-<title>Login - Inventario</title>
-<link rel="stylesheet" href="assets/style.css">
+<title>Inventario - Panel</title>
 </head>
 <body>
-<h2>Ingresar</h2>
-<form id="loginForm">
-<label>Cédula: <input name="cedula" required></label><br>
-<label>Contraseña: <input name="password" type="password" required></label><br>
-<button>Entrar</button>
-</form>
-<div id="msg"></div>
-<script>
-document.getElementById('loginForm').addEventListener('submit', async e => {
-e.preventDefault();
-const fd = new FormData(e.target);
-const body = { cedula: fd.get('cedula'), password: fd.get('password') };
-const res = await fetch('../api/auth.php', { method: 'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-const data = await res.json();
-if (res.ok) {
-if (data.cedula === 'admin') location.href = 'dashboard_admin.php';
-else location.href = 'dashboard_user.php';
-} else {
-document.getElementById('msg').innerText = data.error || 'Error';
-}
-});
-</script>
+<h2>Bienvenido, <?= $nombre ?></h2>
+<?php if ($is_admin): ?>
+    <p>Eres admin — verás botones para Usuarios y Artículos.</p>
+    <button onclick="location.href='users.php'">Gestión de Usuarios</button>
+    <button onclick="location.href='articles.php'">Gestión de Artículos</button>
+<?php else: ?>
+    <p>Acceso limitado: solo gestión de artículos.</p>
+    <button onclick="location.href='articles.php'">Gestión de Artículos</button>
+<?php endif; ?>
+<br><br>
+<a href="logout.php">Cerrar sesión</a>
 </body>
 </html>

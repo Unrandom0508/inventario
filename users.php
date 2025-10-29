@@ -1,57 +1,91 @@
 <?php
-// api/users.php
 session_start();
-require __DIR__ . '/../inc/db.php';
+if (!isset($_SESSION['user_cedula']) || $_SESSION['user_cedula'] !== '1111') {
+    header("Location: index.php");
+    exit;
+}
+?>
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Gestión de Usuarios</title>
+</head>
+<body>
+<h2>Gestión de Usuarios (Admin)</h2>
+<button onclick="location.href='index.php'">Volver</button>
+<button onclick="loadUsers()">Refrescar lista</button>
+<hr>
 
+<h3>Agregar usuario</h3>
+<form id="formCreate" onsubmit="createUser(event)">
+    <label>Cédula: <input name="cedula" required></label><br>
+    <label>Nombre: <input name="nombre" required></label><br>
+    <label>Contraseña: <input name="password" type="password" required></label><br>
+    <button>Agregar</button>
+</form>
 
-// Solo usuarios autenticados pueden usar (en este ejemplo permitimos listar/crear si se llegó aquí tras login)
-if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-$stmt = $pdo->query('SELECT cedula, nombre FROM usuarios ORDER BY nombre');
-$rows = $stmt->fetchAll();
-echo json_encode($rows);
-exit;
+<hr>
+<h3>Usuarios</h3>
+<table id="usersTable" border="1" style="border-collapse:collapse;">
+<thead><tr><th>Cédula</th><th>Nombre</th><th>Creado</th><th>Acciones</th></tr></thead>
+<tbody></tbody>
+</table>
+
+<script>
+async function loadUsers() {
+    const res = await fetch('user_actions.php?action=list');
+    const users = await res.json();
+    const tbody = document.querySelector('#usersTable tbody');
+    tbody.innerHTML = '';
+    users.forEach(u => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${u.cedula}</td><td>${u.nombre}</td><td>${u.created_at}</td>
+            <td>
+                <button onclick="editUser('${u.cedula}','${u.nombre}')">Editar</button>
+            </td>`;
+        tbody.appendChild(tr);
+    });
+}
+async function createUser(e){
+    e.preventDefault();
+    const f = e.target;
+    const payload = {
+        cedula: f.cedula.value.trim(),
+        nombre: f.nombre.value.trim(),
+        password: f.password.value
+    };
+    const res = await fetch('user_actions.php?action=create', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+    });
+    const r = await res.json();
+    if (r.ok) {
+        alert('Usuario creado');
+        f.reset();
+        loadUsers();
+    } else {
+        alert('Error: ' + (r.error || JSON.stringify(r)));
+    }
+}
+function editUser(cedula, nombre){
+    const nuevoNombre = prompt('Nuevo nombre para ' + cedula, nombre);
+    if (nuevoNombre === null) return;
+    const nuevaPass = prompt('Nueva contraseña (dejar vacío para no cambiarla)');
+    const payload = {cedula, nombre: nuevoNombre};
+    if (nuevaPass) payload.password = nuevaPass;
+    fetch('user_actions.php?action=update', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+    }).then(r=>r.json()).then(j=>{
+        if (j.ok) { alert('Usuario actualizado'); loadUsers(); }
+        else alert('Error: '+(j.error||JSON.stringify(j)));
+    });
 }
 
-
-$input = json_decode(file_get_contents('php://input'), true);
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-// crear
-if (!($input['cedula'] && $input['nombre'] && $input['password'])) {
-http_response_code(400);
-echo json_encode(['error' => 'Datos incompletos']);
-exit;
-}
-$hash = password_hash($input['password'], PASSWORD_DEFAULT);
-$stmt = $pdo->prepare('INSERT INTO usuarios (cedula, nombre, password) VALUES (?,?,?)');
-try {
-$stmt->execute([$input['cedula'], $input['nombre'], $hash]);
-echo json_encode(['ok' => true]);
-} catch (PDOException $e) {
-http_response_code(500);
-echo json_encode(['error' => $e->getMessage()]);
-}
-exit;
-}
-
-
-if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
-// modificar usuario (cedula clave para identificar)
-if (!($input['cedula'] && $input['nombre'])) {
-http_response_code(400);
-echo json_encode(['error' => 'Datos incompletos']);
-exit;
-}
-if (!empty($input['password'])) {
-$hash = password_hash($input['password'], PASSWORD_DEFAULT);
-$stmt = $pdo->prepare('UPDATE usuarios SET nombre = ?, password = ? WHERE cedula = ?');
-$stmt->execute([$input['nombre'], $hash, $input['cedula']]);
-} else {
-$stmt = $pdo->prepare('UPDATE usuarios SET nombre = ? WHERE cedula = ?');
-$stmt->execute([$input['nombre'], $input['cedula']]);
-}
-echo json_encode(['ok' => true]);
-exit;
-}
-
-
-http_response_code(405);
+window.onload = loadUsers;
+</script>
+</body>
+</html>
