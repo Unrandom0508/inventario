@@ -1,9 +1,9 @@
 <?php
 // inc/db.php
-$host = '127.0.0.1';
-$db = 'inventario';
-$user = 'root';
-$pass = '';
+$host = 'mysql-flaw.alwaysdata.net';
+$db = 'flaw_inventario';
+$user = 'flaw';
+$pass = 'misifu123+';
 $charset = 'utf8mb4';
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
 $options = [
